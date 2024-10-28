@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    username: root
+    password: Mohamedd...012
+    url: jdbc:mysql://127.0.0.1:3306/movies
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+project:
+  poster: posters/
+
