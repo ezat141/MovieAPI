@@ -12,7 +12,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class MovieServiceImpl implements MovieService {
@@ -76,21 +78,118 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     public MovieDto getMovie(Integer movieId) {
-        return null;
+        // 1. check the data in DB and is existing, fetch the data as given ID
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new MovieNotFoundException("Movie not found with id = "+ movieId));
+        // 2. generate posterUrl
+        String posterUrl = baseUrl + "/file/" + movie.getPoster();
+
+        //3. map to movie Dto object and return it
+
+
+        return new MovieDto(
+                movie.getMovieId(),
+                movie.getTitle(),
+                movie.getDirector(),
+                movie.getStudio(),
+                movie.getMovieCast(),
+                movie.getReleaseYear(),
+                movie.getPoster(),
+                posterUrl
+        );
     }
 
     @Override
     public List<MovieDto> getAllMovies() {
-        return List.of();
+        //1. fetch all data from DB
+
+        List<Movie> movies = movieRepository.findAll();
+        List<MovieDto> movieDtos = new ArrayList<>();
+
+        //2. iterate through the list generate posterUrl for each movie object
+        for (Movie movie : movies) {
+            String posterUrl = baseUrl + "/file/" + movie.getPoster();
+            MovieDto movieDto = new MovieDto(
+                    movie.getMovieId(),
+                    movie.getTitle(),
+                    movie.getDirector(),
+                    movie.getStudio(),
+                    movie.getMovieCast(),
+                    movie.getReleaseYear(),
+                    movie.getPoster(),
+                    posterUrl
+            );
+            movieDtos.add(movieDto);
+
+        }
+
+
+
+        return movieDtos;
     }
 
     @Override
     public MovieDto updateMovie(Integer movieId, MovieDto movieDto, MultipartFile file) throws IOException {
-        return null;
+        // 1. check the data in DB and is existing, fetch the data as given ID
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new MovieNotFoundException("Movie not found with id = "+ movieId));
+
+        //2. if file is null, do nothing if file is not null, then delete existing file
+        // associated with the record and upload the new file
+        String fileName = movie.getPoster();
+        if(file != null){
+           Files.deleteIfExists(Paths.get(path + File.separator + fileName));
+           fileName = fileService.uploadFile(path, file);
+        }
+        // 3. set movieDto's poster value, according to step2
+        movieDto.setPoster(fileName);
+
+        // 4. map it to Movie object
+        Movie mappedMovie = new Movie(
+                movie.getMovieId(),
+                movieDto.getTitle(),
+                movieDto.getDirector(),
+                movieDto.getStudio(),
+                movieDto.getMovieCast(),
+                movieDto.getReleaseYear(),
+                movieDto.getPoster()
+        );
+
+        // 5. save the movie object -> return saved movie object
+
+        Movie updatedMovie = movieRepository.save(mappedMovie);
+
+        // 6. generate posterUrl for it
+        String posterUrl = baseUrl + "/file/" + fileName;
+
+        // 7. map to MovieDto and return it
+
+        return new MovieDto(
+                movie.getMovieId(),
+                movie.getTitle(),
+                movie.getDirector(),
+                movie.getStudio(),
+                movie.getMovieCast(),
+                movie.getReleaseYear(),
+                movie.getPoster(),
+                posterUrl
+        );
     }
 
     @Override
     public String deleteMovie(Integer movieId) throws IOException {
-        return "";
+        // 1. check if movie object exists in DB
+
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new MovieNotFoundException("Movie not found with id = "+ movieId));
+        Integer id = movie.getMovieId();
+
+        // 2. delete the file associated with this object
+        Files.deleteIfExists(Paths.get(path + File.separator + id));
+
+        // 3. delete the movie object
+        movieRepository.delete(movie);
+
+        return "Movie deleted with id = " + id;
     }
 }
