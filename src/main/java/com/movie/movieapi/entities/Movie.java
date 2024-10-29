@@ -41,4 +41,5 @@ public class Movie {
     @NotBlank(message = "Please provide movie's poster!")
     private String poster;
 
+
 }
